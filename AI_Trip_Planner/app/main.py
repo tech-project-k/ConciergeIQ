@@ -1,3 +1,17 @@
+import sys
+import typing
+from typing import Any
+
+# Monkeypatch ForwardRef._evaluate for Python 3.12 compatibility with Pydantic v1
+if sys.version_info >= (3, 12):
+    from typing import ForwardRef
+    original_evaluate = ForwardRef._evaluate
+    def patched_evaluate(self, globalns, localns, recursive_guard=None):
+        if recursive_guard is None:
+            recursive_guard = set()
+        return original_evaluate(self, globalns, localns, recursive_guard=recursive_guard)
+    ForwardRef._evaluate = patched_evaluate
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
