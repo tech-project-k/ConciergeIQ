@@ -1,5 +1,6 @@
 package com.conciergeiq.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
@@ -21,6 +22,7 @@ public class Trip {
 
     @ManyToOne
     @JoinColumn(name = "guest_id", nullable = false)
+    @JsonIgnore
     private Guest guest;
 
     @Column(nullable = false)

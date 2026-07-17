@@ -1,5 +1,6 @@
 package com.conciergeiq.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -31,9 +32,11 @@ public class Guest {
     private LocalDateTime createdAt;
 
     @OneToOne(mappedBy = "guest", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private Preference preference;
 
     @OneToMany(mappedBy = "guest", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<Trip> trips;
 
     @PrePersist

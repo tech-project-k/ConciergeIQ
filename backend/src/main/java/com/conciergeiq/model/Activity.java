@@ -1,5 +1,6 @@
 package com.conciergeiq.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.util.UUID;
@@ -18,6 +19,7 @@ public class Activity {
 
     @ManyToOne
     @JoinColumn(name = "trip_id", nullable = false)
+    @JsonIgnore
     private Trip trip;
 
     @Column(name = "day_number", nullable = false)
