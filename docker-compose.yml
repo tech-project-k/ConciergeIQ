@@ -40,18 +40,15 @@ services:
 
   backend:
     build:
-      context: .
-      dockerfile: docker/spring-backend.Dockerfile
+      context: ./AI_Trip_Planner
+      dockerfile: Dockerfile
     ports:
-      - "8085:8080"
+      - "8085:8000"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/conciergeiq
-      - SPRING_DATASOURCE_DRIVER=org.postgresql.Driver
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=postgres
-      - SPRING_JPA_DIALECT=org.hibernate.dialect.PostgreSQLDialect
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/conciergeiq
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - OPENAI_API_BASE=${OPENAI_API_BASE}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o-mini}
     depends_on:
       - postgres
       - opensearch
