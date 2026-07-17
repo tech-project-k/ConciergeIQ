@@ -1,12 +1,11 @@
 import uuid
 from sqlalchemy import Column, String, Float
-from sqlalchemy.dialects.postgresql import UUID
-from app.database.connection import Base
+from app.database.connection import Base, GUID
 
 class Hotel(Base):
     __tablename__ = "hotels"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False)
     address = Column(String, nullable=False)
     latitude = Column(Float, nullable=False)
@@ -18,7 +17,7 @@ class Hotel(Base):
 class Restaurant(Base):
     __tablename__ = "restaurants"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False)
     address = Column(String, nullable=False)
     latitude = Column(Float, nullable=False)
@@ -30,7 +29,7 @@ class Restaurant(Base):
 class Event(Base):
     __tablename__ = "events"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False)
     address = Column(String, nullable=False)
     latitude = Column(Float, nullable=False)

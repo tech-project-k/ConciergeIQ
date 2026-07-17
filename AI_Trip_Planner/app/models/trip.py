@@ -1,15 +1,14 @@
 import uuid
 from datetime import datetime
 from sqlalchemy import Column, String, Date, DateTime, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from app.database.connection import Base
+from app.database.connection import Base, GUID
 
 class Trip(Base):
     __tablename__ = "trips"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    user_id = Column(GUID, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     destination = Column(String, nullable=False)
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)

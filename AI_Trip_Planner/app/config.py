@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     
     # Database Settings
     DATABASE_URL: str = os.getenv(
-        "DATABASE_URL", "postgresql://postgres:postgres@db:5432/conciergeiq"
+        "DATABASE_URL", "sqlite:///./conciergeiq.db"
     )
     
     # JWT Auth Settings
