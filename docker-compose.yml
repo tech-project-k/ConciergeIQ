@@ -43,7 +43,7 @@ services:
       context: .
       dockerfile: docker/spring-backend.Dockerfile
     ports:
-      - "8080:8080"
+      - "8085:8080"
     environment:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/conciergeiq
       - SPRING_DATASOURCE_DRIVER=org.postgresql.Driver
@@ -64,7 +64,7 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - VITE_API_URL=http://localhost:8080/api
+      - VITE_API_URL=http://localhost:8085/api
     depends_on:
       - backend
     restart: always
