@@ -1,5 +1,5 @@
 # Build stage
-FROM maven:3.8.5-openjdk-17-slim AS build
+FROM maven:3.9.6-eclipse-temurin-17 AS build
 WORKDIR /app
 
 # Copy pom and go offline to cache dependencies
@@ -11,7 +11,7 @@ COPY backend/src ./src
 RUN mvn package -DskipTests -B
 
 # Run stage
-FROM openjdk:17-slim
+FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
 
 COPY --from=build /app/target/conciergeiq-1.0.0.jar app.jar
