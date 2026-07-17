@@ -1,0 +1,117 @@
+{
+  "info": {
+    "name": "ConciergeIQ GenAI Travel Concierge Engine API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Chat Agent",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"session_id\": \"VIVA-TEST-101\",\n  \"message\": \"I want to plan a trip to Vizag under Rs 6000 tomorrow, I like beaches\"\n}"
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8085/api/chat",
+          "protocol": "http",
+          "host": ["127", "0", "0", "1"],
+          "port": "8085",
+          "path": ["api", "chat"]
+        }
+      }
+    },
+    {
+      "name": "Direct Itinerary Planning",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"guest_profile\": {\n    \"name\": \"Pavan\",\n    \"destination\": \"Hyderabad\",\n    \"start_date\": \"2026-07-18\",\n    \"end_date\": \"2026-07-19\",\n    \"budget\": 7500,\n    \"interests\": [\"Biryani\", \"Culture\"],\n    \"food_preference\": \"Seafood\",\n    \"travel_type\": \"Solo\"\n  }\n}"
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8085/api/itinerary",
+          "protocol": "http",
+          "host": ["127", "0", "0", "1"],
+          "port": "8085",
+          "path": ["api", "itinerary"]
+        }
+      }
+    },
+    {
+      "name": "Explore Sights",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"city\": \"Vizag\",\n  \"place_type\": \"attraction\",\n  \"budget_limit\": 200\n}"
+        },
+        "url": {
+          "raw": "http://127.0.0.1:8085/api/explore",
+          "protocol": "http",
+          "host": ["127", "0", "0", "1"],
+          "port": "8085",
+          "path": ["api", "explore"]
+        }
+      }
+    },
+    {
+      "name": "Get Recommendations",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://127.0.0.1:8085/api/recommendations?destination=Vizag&interests=Beach&interests=Culture",
+          "protocol": "http",
+          "host": ["127", "0", "0", "1"],
+          "port": "8085",
+          "path": ["api", "recommendations"],
+          "query": [
+            {
+              "key": "destination",
+              "value": "Vizag"
+            },
+            {
+              "key": "interests",
+              "value": "Beach"
+            },
+            {
+              "key": "interests",
+              "value": "Culture"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://127.0.0.1:8085/api/health",
+          "protocol": "http",
+          "host": ["127", "0", "0", "1"],
+          "port": "8085",
+          "path": ["api", "health"]
+        }
+      }
+    }
+  ]
+}

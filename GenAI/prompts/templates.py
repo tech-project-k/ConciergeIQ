@@ -1,131 +1,92 @@
 # =====================================================================
 # Why it exists:
-# Centralizes all LLM Prompt Templates in one module. Isolating prompts 
-# makes them easy to refine, test, and adapt for other LLMs.
-#
-# What it does:
-# Exposes formatted string prompts for Intent Extraction, Travel Planning, 
-# Recommendation, Alternative suggestions, and validation tasks.
-#
-# How it works:
-# Defines raw multiline strings with placeholder tokens that are replaced 
-# with live parameters at runtime using Python `.format()`.
-#
-# How it integrates:
-# Imported by agents in the `agents/` folder to format LLM inputs.
+# Centralizes all LLM Prompt Templates in one module.
+# Exposes instruction-tuned templates optimized for Nous Hermes / Gemini models.
 # =====================================================================
 
-# 1. Intent Extraction Prompt: Extracts structured variables from conversational requests.
+# Nous Hermes / Gemini optimized intent classifier prompt
 INTENT_EXTRACTION_PROMPT = """
+### System:
 You are an expert AI Intent Classifier working for ConciergeIQ.
 Your task is to analyze the Guest's travel message and extract key travel variables.
 
-Guest Message:
-"{message}"
+### Input:
+Guest Message: "{message}"
+Previous Preferences Context: {previous_preferences}
 
-Previous Extracted Preferences (if any):
-{previous_preferences}
-
-Extract the following variables in strict JSON format:
+### Instructions:
+Parse the input and output a valid JSON block containing:
 - destination (default to "Unknown")
-- start_date (default to "Tomorrow" if not mentioned, format YYYY-MM-DD if possible)
-- end_date (default to "Tomorrow" if not mentioned, format YYYY-MM-DD if possible)
-- budget (number representing cost, default to 5000 if not specified)
-- interests (list of strings, e.g., ["Beach", "Culture", "Sightseeing"])
-- food_preference (default to "Any")
+- start_date (default YYYY-MM-DD)
+- end_date (default YYYY-MM-DD)
+- budget (number, default 5000)
+- interests (list of strings)
+- food_preference (default "Any")
 - travel_type (Solo, Couple, Family, Friends)
 - weather_preference (Sunny, Cool, Any)
 - accessibility_needs (list of strings)
 
-Rules:
-- Do NOT make up properties. Use only what is mentioned or logically implied.
-- Keep previous values if the user does not override them.
-- Return ONLY a raw JSON block. No markdown, no explanation!
+Return ONLY raw JSON. No conversational fillers or markdown.
 """
 
-# 2. Travel Planning Prompt: Generates structured itinerary hours based on weather & budget.
+# Travel planning prompt
 TRAVEL_PLANNING_PROMPT = """
-You are an expert Travel Planner Agent working for ConciergeIQ.
-Your task is to build a detailed, hour-by-hour itinerary based on the Guest's preferences and catalog.
+### System:
+You are a Principal Travel Planner Agent working for ConciergeIQ.
+Your task is to construct a detailed hour-by-hour itinerary.
 
-Guest Profile:
+### Context:
 - Destination: {destination}
-- Budget Limit: {budget}
+- Budget: {budget}
 - Interests: {interests}
-- Food Preference: {food_preference}
-- Travel Type: {travel_type}
+- Weather: {weather}
 
-Available Catalog Sights (Pre-filtered nearby):
+### Sights Catalog:
 {catalog_data}
 
-Weather Conditions:
-- Status: {weather}
-- Advice: If raining, heavily prioritize INDOOR spots (museums, malls, indoor events). If sunny, suggest OUTDOOR spots (beaches, ropeways, temple hills).
-
-Instructions:
-1. Generate an hour-by-hour schedule (e.g. 09:00 AM, 12:00 PM, 03:00 PM, 07:00 PM).
-2. Schedule a hotel check-in/stay, lunch, dinner, and at least 2 attractions.
-3. Suggest transit items in between sights indicating travel times and distance.
-4. Stay strictly under the guest's budget limit! Total cost must be less than {budget}.
-5. Formulate responses in a structured YAML or simple list format that can be easily parsed.
+### Instructions:
+1. Schedule check-in, lunch, dinner, and 2 attractions.
+2. Ensure transit delays and distance values are listed in the transitions.
+3. Stay strictly within the budget.
+4. Format daily hours chronologically.
 """
 
-# 3. Recommendation Prompt: Suggests specific regional recommendations.
+# Nous Hermes style prompt for custom travel recommendations
 RECOMMENDATION_PROMPT = """
-You are a hospitality Recommendation Agent working for ConciergeIQ.
-Your task is to analyze the generated itinerary and suggest 3 optional premium spots or events.
+### System:
+You are a local hospitality concierge trained in the Nous Hermes prompt style.
+Your task is to draft custom, highly specific regional travel recommendations.
 
+### Input:
 Destination: {destination}
 Interests: {interests}
-Current Itinerary Overview:
-{itinerary_text}
+Itinerary under evaluation: {itinerary_text}
 
-Provide 3 highly targeted recommendations that complement this trip (e.g., specific local foods to try, hidden photo spots, or special night markets). Explain why they match the guest's interests.
+### Instructions:
+Suggest 3 local travel tips (e.g. specific dishes to eat, photo viewpoints, night walks).
+Write in a engaging, hospitable tone. Avoid lists; present them as short bullet points.
 """
 
-# 4. Alternative Suggestion Prompt: Proposes replacements if a constraint is breached.
+# Alternatives prompt
 ALTERNATIVE_SUGGESTION_PROMPT = """
-You are a Conflict Handler Agent working for ConciergeIQ.
-The following travel constraint has been violated in the guest's itinerary:
-Violation: {conflict_details}
-
-Current Problem Spot: {problem_spot}
-Category: {category}
-
-Suggest 2 suitable replacement alternatives in the same city ({destination}) that:
-1. Resolve the conflict (e.g. if weather is rainy, suggest an indoor alternative; if a restaurant is closed, suggest a nearby open dining option).
-2. Remain within the target budget.
+### System:
+Suggest alternatives to resolve the conflict: {conflict_details} in {destination}.
 """
 
-# 5. Validation Prompt: Verifies correctness and returns warnings.
+# Validation prompt
 VALIDATION_PROMPT = """
-You are an independent Itinerary Validator Agent working for ConciergeIQ.
-Your task is to check the generated itinerary for any scheduling conflicts, budget breaches, or weather issues.
-
-Itinerary under review:
-{itinerary_text}
-
-Guest Budget Limit: {budget}
-Weather: {weather}
-
-Check for:
-1. Overlapping times (e.g., booking two events at the same hour).
-2. Budget breach (sum of activity costs exceeds guest budget).
-3. Weather conflict (suggesting open beach walks during heavy rain).
-4. Duplicate places visited.
-
-Return a list of specific warning messages. If everything is perfect, return "No conflicts found".
+### System:
+Audit the itinerary {itinerary_text} for budget {budget} and weather {weather}.
 """
 
-# 6. JSON Formatter Prompt: Converts unstructured plan details into clean JSON matching schema.
+# JSON Formatter prompt
 JSON_FORMATTER_PROMPT = """
-You are a high-speed JSON Parser Agent working for ConciergeIQ.
-Your task is to parse the unstructured travel agent plan text and structure it into a strict JSON payload matching the requested API Response schema.
-
-Unstructured Plan Data:
+### System:
+Format the unstructured itinerary text into valid JSON matching ItineraryResponse.
+Unstructured Plan:
 {raw_agent_text}
 
-Response JSON Template to fill:
+JSON Format Template:
 {{
   "guest": "{guest_name}",
   "itinerary": [
@@ -138,7 +99,7 @@ Response JSON Template to fill:
           "activity_name": "Name",
           "activity_type": "attraction",
           "cost": 10.0,
-          "description": "What to do...",
+          "description": "Description",
           "travel_time_from_prev": "0 mins",
           "travel_distance_from_prev": "0 km"
         }}
@@ -146,13 +107,9 @@ Response JSON Template to fill:
     }}
   ],
   "estimated_cost": 0.0,
-  "travel_time": "Sum of transit mins, e.g., '45 mins'",
+  "travel_time": "Sum of transit, e.g. '30 mins'",
   "weather": "{weather}",
   "recommendations": []
 }}
-
-Rules:
-- The estimated_cost must be the sum of all costs in the schedule.
-- Ensure the output is valid JSON.
-- Return ONLY the raw JSON block. Do not include markdown code fences or conversational text.
+Return raw JSON only.
 """
