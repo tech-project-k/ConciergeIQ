@@ -97,6 +97,7 @@ export default function Timeline({ activities, warnings, tripId }) {
         ) : (
           currentActivities.map((act, idx) => {
             const isExpanded = expandedAct === act.id || expandedAct === idx;
+            const prevAct = idx > 0 ? currentActivities[idx - 1] : null;
             
             return (
               <div key={act.id || idx} className="relative space-y-3">
@@ -104,12 +105,14 @@ export default function Timeline({ activities, warnings, tripId }) {
                 <span className="absolute -left-[21px] top-4 w-2.5 h-2.5 rounded-full bg-violet-500 border border-slate-950 shadow shadow-violet-500/40" />
 
                 {/* Transit Details Banner from previous point */}
-                {idx > 0 && act.travel_distance_km > 0 && (
-                  <div className="flex items-center gap-2 text-[10px] text-gray-500 pl-4 py-1.5 bg-slate-950/45 rounded-lg border border-slate-950 w-fit">
-                    <Car className="w-3.5 h-3.5 text-gray-600" />
+                {idx > 0 && act.travel_distance_km > 0 && prevAct && (
+                  <div className="flex items-center gap-2 text-[10px] text-gray-400 pl-4 py-1.5 bg-slate-950/70 border border-slate-900/60 rounded-xl w-full sm:w-fit leading-relaxed">
+                    <Car className="w-3.5 h-3.5 text-violet-400 flex-shrink-0" />
                     <span>
                       {act.travel_mode === 'walking' ? '🚶 Walk' : '🚕 Ride'} &bull;{' '}
-                      <strong>{act.travel_duration_min} mins</strong> ({act.travel_distance_km} km)
+                      <strong>{act.travel_duration_min} mins</strong> ({act.travel_distance_km} km) from{' '}
+                      <span className="text-gray-300 font-semibold">{prevAct.name}</span> to{' '}
+                      <span className="text-gray-300 font-semibold">{act.name}</span>
                     </span>
                   </div>
                 )}
