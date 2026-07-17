@@ -1,24 +1,66 @@
-import numpy as np
-from sentence_transformers import SentenceTransformer
+import math
+import re
 from app.utils.logger import get_logger
 
 logger = get_logger("vector_store")
 
+def tokenize(text: str) -> list:
+    return re.findall(r'[a-z0-9]+', text.lower())
+
+class SimpleTFIDF:
+    def __init__(self, corpus_docs: list):
+        self.corpus = [tokenize(doc) for doc in corpus_docs]
+        self.num_docs = len(self.corpus)
+        
+        # Calculate DF (document frequency)
+        self.df = {}
+        for doc in self.corpus:
+            for word in set(doc):
+                self.df[word] = self.df.get(word, 0) + 1
+                
+        # Calculate IDF
+        self.idf = {}
+        for word, count in self.df.items():
+            self.idf[word] = math.log((1 + self.num_docs) / (1 + count)) + 1
+
+    def get_tfidf_vector(self, tokens: list) -> dict:
+        tf = {}
+        for word in tokens:
+            tf[word] = tf.get(word, 0) + 1
+            
+        vector = {}
+        for word, freq in tf.items():
+            if word in self.idf:
+                vector[word] = freq * self.idf[word]
+        return vector
+
+    def cosine_similarity(self, vec1: dict, vec2: dict) -> float:
+        intersection = set(vec1.keys()) & set(vec2.keys())
+        numerator = sum(vec1[word] * vec2[word] for word in intersection)
+        
+        sum1 = sum(val**2 for val in vec1.values())
+        sum2 = sum(val**2 for val in vec2.values())
+        denominator = math.sqrt(sum1) * math.sqrt(sum2)
+        
+        if not denominator:
+            return 0.0
+        return numerator / denominator
+
 class VectorStore:
     def __init__(self):
-        # Load lightweight embeddings model (120MB)
-        logger.info("Initializing SentenceTransformer model 'all-MiniLM-L6-v2'...")
-        self.model = SentenceTransformer("all-MiniLM-L6-v2")
-        
-        # In-memory document storage
+        logger.info("Initializing Pure Python TF-IDF Vector Similarity Store...")
         self.documents = []
-        self.embeddings = []
-        
-        # Populate initial database catalog
         self._seed_catalog()
+        
+        # Initialize TF-IDF engine
+        texts = [doc["description"] for doc in self.documents]
+        self.tfidf = SimpleTFIDF(texts)
+        
+        # Precompute vectors for all documents
+        self.doc_vectors = [self.tfidf.get_tfidf_vector(tokenize(text)) for text in texts]
 
     def _seed_catalog(self):
-        # We host regional catalog data for Vizag, Hyderabad, Rajahmundry, and Ravulapalem
+        # Catalog containing regional spots for Vizag, Hyderabad, Rajahmundry, Ravulapalem
         raw_catalog = [
             # 1. Vizag
             {"city": "Vizag", "type": "attraction", "name": "RK Beach Sunrise Walk & Submarine Museum", "address": "Beach Road, Visakhapatnam", "cost": 8.0, "lat": 17.6868, "lon": 83.2185},
@@ -55,40 +97,31 @@ class VectorStore:
             {"city": "Ravulapalem", "type": "event", "name": "Local Theater Cinema Screens", "address": "Main Road, Ravulapalem", "cost": 4.0, "lat": 16.7380, "lon": 81.8462}
         ]
         
-        # Generate text description for embeddings
         for entry in raw_catalog:
             desc = f"{entry['name']} in {entry['city']} is a {entry['type']} located at {entry['address']} with cost {entry['cost']} dollars."
             entry["description"] = desc
             self.documents.append(entry)
-            
-        texts = [doc["description"] for doc in self.documents]
-        self.embeddings = self.model.encode(texts, show_progress_bar=False)
 
     def search(self, query: str, city: str, limit: int = 5) -> list:
-        # Filter documents by city first
         city_lower = city.lower()
         indices = [i for i, doc in enumerate(self.documents) if city_lower in doc["city"].lower()]
         
         if not indices:
-            # Fallback to general search if city not explicitly found
             indices = list(range(len(self.documents)))
             
-        filtered_embeddings = [self.embeddings[i] for i in indices]
+        filtered_vectors = [self.doc_vectors[i] for i in indices]
         filtered_docs = [self.documents[i] for i in indices]
         
-        # Calculate cosine similarity
-        query_vector = self.model.encode([query], show_progress_bar=False)[0]
+        # Calculate query TF-IDF vector
+        query_tokens = tokenize(query)
+        query_vector = self.tfidf.get_tfidf_vector(query_tokens)
         
         similarities = []
-        for vec in filtered_embeddings:
-            dot_product = np.dot(query_vector, vec)
-            norm_q = np.linalg.norm(query_vector)
-            norm_v = np.linalg.norm(vec)
-            score = dot_product / (norm_q * norm_v) if norm_q > 0 and norm_v > 0 else 0.0
+        for vec in filtered_vectors:
+            score = self.tfidf.cosine_similarity(query_vector, vec)
             similarities.append(score)
             
-        # Sort and return closest matches
-        sorted_indices = np.argsort(similarities)[::-1]
+        sorted_indices = [idx for _, idx in sorted(zip(similarities, range(len(similarities))), reverse=True)]
         results = []
         for idx in sorted_indices[:limit]:
             results.append(filtered_docs[idx])
