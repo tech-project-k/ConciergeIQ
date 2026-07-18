@@ -10,6 +10,7 @@ from config.settings import settings
 from prompts.templates import JSON_FORMATTER_PROMPT
 from models.schemas import DailyItinerary, ItineraryItem
 from utils.logger import get_logger
+from utils.llm import invoke_with_timeout
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 logger = get_logger("response_agent")
@@ -37,7 +38,14 @@ class ResponseAgent:
                     date=date,
                     weather=weather_status
                 )
-                response = self.llm.invoke(prompt)
+                response = invoke_with_timeout(
+                    self.llm,
+                    prompt,
+                    timeout=2.0,
+                    fallback=lambda p: None,
+                )
+                if response is None:
+                    raise RuntimeError("LLM timeout")
                 text = response.content.strip()
                 if "```json" in text:
                     text = text.split("```json")[1].split("```")[0].strip()

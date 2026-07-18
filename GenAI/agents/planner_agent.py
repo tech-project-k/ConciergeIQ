@@ -9,6 +9,7 @@ from config.settings import settings
 from prompts.templates import TRAVEL_PLANNING_PROMPT
 from services.maps import maps_service
 from utils.logger import get_logger
+from utils.llm import invoke_with_timeout
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 logger = get_logger("planner_agent")
@@ -47,7 +48,14 @@ class PlannerAgent:
                     weather=weather_summary
                 )
                 
-                response = self.llm.invoke(prompt)
+                response = invoke_with_timeout(
+                    self.llm,
+                    prompt,
+                    timeout=2.0,
+                    fallback=lambda p: None,
+                )
+                if response is None:
+                    raise RuntimeError("LLM timeout")
                 return response.content.strip()
             except Exception as e:
                 logger.error(f"Gemini planner fail: {e}")

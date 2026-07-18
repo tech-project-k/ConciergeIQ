@@ -62,8 +62,15 @@ class Event(BaseModel):
 # 2. Guest Profile & Travel Preferences
 # ==========================================================
 
+class UserLocation(BaseModel):
+    latitude: float = Field(description="User's current latitude coordinate")
+    longitude: float = Field(description="User's current longitude coordinate")
+    city: Optional[str] = Field(default=None, description="Nearest city name if available")
+    address: Optional[str] = Field(default=None, description="Full address or landmark")
+
 class Guest(BaseModel):
     name: str = Field(default="Guest", description="Name of the traveler")
+    current_location: Optional[UserLocation] = Field(default=None, description="User's current live location (latitude/longitude)")
     destination: str = Field(description="Target destination city")
     start_date: str = Field(description="Start date of the trip (YYYY-MM-DD)")
     end_date: str = Field(description="End date of the trip (YYYY-MM-DD)")
@@ -86,6 +93,7 @@ class ItineraryItem(BaseModel):
     description: str = Field(description="Short description of what the guest will do here")
     travel_time_from_prev: str = Field(default="0 mins", description="Time to travel from previous location")
     travel_distance_from_prev: str = Field(default="0 km", description="Distance from previous location")
+    booking_confirmation_code: Optional[str] = Field(default=None, description="Booking confirmation code if pre-reserved (e.g., CLAW-ABC123)")
 
 class DailyItinerary(BaseModel):
     day_number: int = Field(description="Day number of the trip (e.g. Day 1, Day 2)")
@@ -109,8 +117,9 @@ class Booking(BaseModel):
 # ==========================================================
 
 class ChatRequest(BaseModel):
-    session_id: str = Field(description="Unique session ID to maintain chat memory")
-    message: str = Field(description="Message typed by the guest")
+    session_id: str = Field(description="Unique session ID to maintain chat memory", min_length=1)
+    message: str = Field(description="Message typed by the guest", min_length=1)
+    user_location: Optional[UserLocation] = Field(default=None, description="Optional user's current live location (lat/lon)")
     guest_preferences: Optional[Guest] = Field(default=None, description="Optional hardcoded user profile override")
 
 class ChatResponse(BaseModel):
@@ -121,6 +130,7 @@ class ChatResponse(BaseModel):
     travel_time: str = Field(default="0 mins")
     weather_summary: str = Field(default="Unknown")
     booking_alerts: List[str] = Field(default=[])
+    route_map: Optional[List[Dict[str, Any]]] = Field(default=None, description="List of map points for rendering a route map from the user's location to itinerary stops")
 
 class ItineraryRequest(BaseModel):
     guest_profile: Guest = Field(description="Complete guest profile including budget and dates")

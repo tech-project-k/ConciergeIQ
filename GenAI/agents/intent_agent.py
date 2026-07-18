@@ -9,6 +9,7 @@ from typing import Dict, Any
 from config.settings import settings
 from prompts.templates import INTENT_EXTRACTION_PROMPT
 from utils.logger import get_logger
+from utils.llm import invoke_with_timeout
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 logger = get_logger("intent_agent")
@@ -35,7 +36,14 @@ class IntentAgent:
                     message=message,
                     previous_preferences=json.dumps(previous_preferences)
                 )
-                response = self.llm.invoke(prompt)
+                response = invoke_with_timeout(
+                    self.llm,
+                    prompt,
+                    timeout=2.0,
+                    fallback=lambda p: None,
+                )
+                if response is None:
+                    raise RuntimeError("LLM timeout")
                 text = response.content.strip()
                 if "```json" in text:
                     text = text.split("```json")[1].split("```")[0].strip()

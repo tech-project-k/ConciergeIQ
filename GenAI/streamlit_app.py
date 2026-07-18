@@ -18,6 +18,7 @@
 import streamlit as st
 import requests
 import uuid
+import pandas as pd
 
 # Set up Streamlit Page configurations
 st.set_page_config(
@@ -78,6 +79,8 @@ if "last_weather" not in st.session_state:
     st.session_state.last_weather = "Unknown"
 if "last_alerts" not in st.session_state:
     st.session_state.last_alerts = []
+if "last_map_points" not in st.session_state:
+    st.session_state.last_map_points = []
 
 # Sidebar configurations
 with st.sidebar:
@@ -91,12 +94,18 @@ with st.sidebar:
         st.session_state.last_cost = 0.0
         st.session_state.last_weather = "Unknown"
         st.session_state.last_alerts = []
+        st.session_state.last_map_points = []
         st.rerun()
 
     st.markdown("---")
-    st.subheader("🔍 Catalog Explorer")
-    explore_city = st.selectbox("Select City", ["Vizag", "Hyderabad", "Rajahmundry", "Ravulapalem"])
-    explore_type = st.selectbox("Category", ["attraction", "hotel", "lunch", "dinner", "event"])
+    st.subheader("� Current Location")
+    current_lat = st.number_input("Latitude", value=17.6868, format="%.6f")
+    current_lon = st.number_input("Longitude", value=83.2185, format="%.6f")
+
+    st.markdown("---")
+    st.subheader("�� Catalog Explorer")
+    explore_city = st.selectbox("Select City", ["Vizag", "Hyderabad", "Rajahmundry", "Ravulapalem"," Visakhapatnam","araku", "srisailam", "tirupati", "vijayawada", "warangal", "kurnool", "guntur", "nellore", "anantapur", "kadapa", "chittoor", "eluru", "tenali", "ongole", "proddatur", "bhimavaram", "machilipatnam", "tiruvuru", "nandyal", "sattenapalle", "bapatla", "narasaraopet", "gudivada", "tenali", "srikakulam", "vizianagaram", "kakinada", "rajahmundry", "srikalahasti", "tirupati", "chittoor", "kadapa", "anantapur", "kurnool", "nellore", "guntur", "vijayawada", "warangal", "khammam", "nalgonda", "mahbubnagar", "adoni", "tenali", "ongole","himachal pradesh", "uttarakhand", "rajasthan", "gujarat", "maharashtra", "karnataka", "tamil nadu", "kerala", "goa", "punjab", "haryana", "bihar", "jharkhand", "odisha", "west bengal", "assam", "manipur", "mizoram", "nagaland", "tripura","meghalaya", "sikkim", "arunachal pradesh", "chhattisgarh", "madhya pradesh", "uttar pradesh", "jammu and kashmir", "ladakh", "andaman and nicobar islands", "lakshadweep", "daman and diu", "dadra and nagar haveli", "puducherry", "chandigarh", "delhi", "jharkhand", "bihar", "west bengal", "assam", "meghalaya", "mizoram", "nagaland", "tripura", "sikkim", "arunachal pradesh","bengaluru", "mumbai", "delhi", "chennai", "kolkata", "hyderabad", "pune", "ahmedabad", "jaipur", "lucknow", "kanpur", "nagpur", "indore", "thane", "bhopal", "visakhapatnam", "pimpri-chinchwad", "patna", "vadodara", "ghaziabad", "ludhiana", "agra", "nashik", "faridabad", "meerut", "rajkot", "kalyan-dombivli", "vasai-virar", "varanasi", "srinagar", "aurangabad", "dhanbad", "amritsar", "navi mumbai", "allahabad", "ranchi", "howrah", "coimbatore", "jabalpur", "gwalior", "vijayawada", "jodhpur", "madurai", "raipur", "kota", "guwahati", "chandigarh","india", "pakistan", "nepal", "bhutan", "bangladesh", "sri lanka", "maldives", "afghanistan", "iran", "iraq", "saudi arabia", "uae", "qatar", "kuwait", "bahrain", "oman", "yemen", "turkey", "egypt", "morocco", "tunisia", "algeria", "libya", "sudan", "ethiopia", "kenya", "tanzania", "uganda", "rwanda", "burundi", "zambia", "zimbabwe", "botswana", "namibia", "south africa", "lesotho", "swaziland"])
+    explore_type = st.selectbox("Category", ["attraction", "hotel", "lunch", "dinner", "event", "shopping", "cultural", "nature", "adventure", "historical", "religious", "beach", "mountain", "desert", "forest", "wildlife", "spa", "nightlife", "sports", "festival", "art gallery", "museum", "theater", "concert", "zoo", "aquarium", "amusement park", "water park", "botanical garden", "national park", "hiking trail", "cycling route", "ski resort", "surfing spot", "diving site", "snorkeling site", "kayaking spot", "rafting spot", "paragliding site", "hot air balloon site", "camping site", "glamping site", "vineyard", "winery", "brewery", "distillery", "coffee shop", "tea house", "chocolate factory", "cheese factory", "farmers market", "street food market", "food festival", "wine festival", "beer festival", "music festival", "film festival", "literature festival", "fashion show", "cultural show"])
     
     if st.button("Explore Places"):
         try:
@@ -140,7 +149,13 @@ with col1:
             with st.spinner("GenAI LangGraph Agents thinking..."):
                 response = requests.post(f"{BACKEND_URL}/chat", json={
                     "session_id": st.session_state.session_id,
-                    "message": user_input
+                    "message": user_input,
+                    "user_location": {
+                        "latitude": current_lat,
+                        "longitude": current_lon,
+                        "city": "Current Location",
+                        "address": "User entered location"
+                    }
                 })
                 
             if response.status_code == 200:
@@ -153,6 +168,7 @@ with col1:
                 st.session_state.last_cost = data.get("estimated_cost", 0.0)
                 st.session_state.last_weather = data.get("weather_summary", "Unknown")
                 st.session_state.last_alerts = data.get("booking_alerts", [])
+                st.session_state.last_map_points = data.get("route_map", [])
                 
                 st.rerun()
             else:
@@ -172,6 +188,18 @@ with col2:
             for alert in st.session_state.last_alerts:
                 st.warning(alert)
                 
+        if st.session_state.last_map_points:
+            map_df = pd.DataFrame([
+                {"lat": point.get("latitude"), "lon": point.get("longitude"), "name": point.get("name", "Point")}
+                for point in st.session_state.last_map_points
+                if point.get("latitude") is not None and point.get("longitude") is not None
+            ])
+            if not map_df.empty:
+                st.subheader("🗺️ Travel Map")
+                st.map(map_df)
+                for point in st.session_state.last_map_points:
+                    st.caption(f"{point.get('name', 'Point')} — {point.get('type', 'stop')}")
+
         # Render timeline schedule items
         for day in st.session_state.last_itinerary:
             st.markdown(f"### 🗓️ Day {day['day_number']} - {day['date']}")

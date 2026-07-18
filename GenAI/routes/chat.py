@@ -16,9 +16,20 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 def process_chat(payload: ChatRequest):
     logger.info(f"POST /api/chat received request for session: {payload.session_id}")
     try:
+        # Extract user location if provided
+        user_location = None
+        if payload.user_location:
+            user_location = {
+                "latitude": payload.user_location.latitude,
+                "longitude": payload.user_location.longitude,
+                "city": payload.user_location.city,
+                "address": payload.user_location.address
+            }
+        
         response = travel_agent.process_chat_message(
             session_id=payload.session_id,
-            message=payload.message
+            message=payload.message,
+            user_location=user_location
         )
         return response
     except Exception as e:
