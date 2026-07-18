@@ -20,7 +20,8 @@ class RecommendationAgent:
             try:
                 self.llm = ChatGoogleGenerativeAI(
                     model="gemini-1.5-flash",
-                    google_api_key=self.api_key
+                    google_api_key=self.api_key,
+                    timeout=5.0
                 )
             except Exception as e:
                 logger.error(f"Gemini err: {e}")
