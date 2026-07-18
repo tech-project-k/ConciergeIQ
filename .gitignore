@@ -1,0 +1,15 @@
+# Ignore private credentials
+.env
+
+# Ignore python virtual environments
+venv/
+.venv/
+env/
+
+# Ignore SQLite database files
+*.db
+*.sqlite3
+
+# Ignore python cache files
+__pycache__/
+*.pyc
