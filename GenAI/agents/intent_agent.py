@@ -21,9 +21,9 @@ class IntentAgent:
         if self.api_key and "YOUR_GEMINI" not in self.api_key:
             try:
                 self.llm = ChatGoogleGenerativeAI(
-                    model="gemini-1.5-flash",
+                    model="gemini-2.5-flash",
                     google_api_key=self.api_key,
-                    timeout=5.0
+                    timeout=30.0
                 )
                 logger.info("Intent Agent Gemini LLM initialized.")
             except Exception as e:
@@ -39,7 +39,7 @@ class IntentAgent:
                 response = invoke_with_timeout(
                     self.llm,
                     prompt,
-                    timeout=2.0,
+                    timeout=8.0,
                     fallback=lambda p: None,
                 )
                 if response is None:
@@ -56,16 +56,38 @@ class IntentAgent:
         # Rule-based fallback
         destination = "Unknown"
         msg_lower = message.lower()
-        if "vizag" in msg_lower or "visakhapatnam" in msg_lower:
-            destination = "Vizag"
-        elif "hyderabad" in msg_lower:
-            destination = "Hyderabad"
-        elif "rajahmundry" in msg_lower:
-            destination = "Rajahmundry"
-        elif "ravulapalem" in msg_lower:
-            destination = "Ravulapalem"
-        else:
-            destination = previous_preferences.get("destination", "Unknown")
+        
+        # Check explicit patterns for any location: "to Goa", "visit Tirupati", "in Delhi"
+        dest_match = re.search(r'(?:to|visit|in|at|for)\s+([a-zA-Z\s]+?)(?:\s+for|\s+tomorrow|\s+under|\s+budget|\s+with|\s*\d+|\.|\,|$)', msg_lower)
+        if dest_match:
+            candidate = dest_match.group(1).strip()
+            # Strip extra verbs if matched
+            candidate = re.sub(r'^(visit|to|in|at|for)\s+', '', candidate, flags=re.I).strip().capitalize()
+            ignored_words = ["a", "the", "my", "our", "this", "next", "trip", "vacation", "holiday", "places", "hotels"]
+            if candidate.lower() not in ignored_words and len(candidate) > 2:
+                destination = candidate
+
+        if destination == "Unknown":
+            if "vizag" in msg_lower or "visakhapatnam" in msg_lower:
+                destination = "Vizag"
+            elif "hyderabad" in msg_lower:
+                destination = "Hyderabad"
+            elif "rajahmundry" in msg_lower:
+                destination = "Rajahmundry"
+            elif "ravulapalem" in msg_lower:
+                destination = "Ravulapalem"
+            elif "goa" in msg_lower:
+                destination = "Goa"
+            elif "tirupati" in msg_lower:
+                destination = "Tirupati"
+            elif "delhi" in msg_lower:
+                destination = "Delhi"
+            elif "mumbai" in msg_lower:
+                destination = "Mumbai"
+            elif "bangalore" in msg_lower or "bengaluru" in msg_lower:
+                destination = "Bangalore"
+            else:
+                destination = previous_preferences.get("destination", "Unknown")
 
         budget = previous_preferences.get("budget", 5000.0)
         digits = re.findall(r'\d+', msg_lower)
@@ -78,7 +100,7 @@ class IntentAgent:
                 pass
 
         interests = previous_preferences.get("interests", [])
-        interest_words = ["beach", "temple", "museum", "biryani", "food", "movie", "shopping", "ropeway"]
+        interest_words = ["beach", "temple", "museum", "biryani", "food", "movie", "shopping", "ropeway", "nature", "fort", "resort", "heritage"]
         for word in interest_words:
             if word in msg_lower:
                 interests.append(word.capitalize())

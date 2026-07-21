@@ -130,7 +130,8 @@ def build_route_map(state: AgentState) -> List[Dict[str, Any]]:
             })
 
     for day in state.get("itinerary", []):
-        for item in day.schedule:
+        for idx, item in enumerate(day.schedule):
+            found_spot = False
             for spot in state.get("catalog_spots", []):
                 spot_name = str(spot.get("name", "")).lower()
                 item_name = item.activity_name.lower()
@@ -142,7 +143,20 @@ def build_route_map(state: AgentState) -> List[Dict[str, Any]]:
                             "longitude": spot.get("lon"),
                             "type": item.activity_type
                         })
+                        found_spot = True
                         break
+            if not found_spot and destination != "Unknown":
+                dest_coords = location_service.get_destination_coordinates(destination)
+                if dest_coords:
+                    # Provide offset coords for route display
+                    offset_lat = dest_coords[0] + (0.003 * (idx + 1))
+                    offset_lon = dest_coords[1] + (0.003 * (idx + 1))
+                    route_points.append({
+                        "name": item.activity_name,
+                        "latitude": offset_lat,
+                        "longitude": offset_lon,
+                        "type": item.activity_type
+                    })
 
     return route_points
 
@@ -243,9 +257,12 @@ class TravelAgent:
             # Check if destination is unknown to ask follow-up questions
             destination = final_state["preferences"].get("destination", "Unknown")
             if destination == "Unknown":
+                resp_msg = final_state["response_text"] if final_state["response_text"] else "Which city are you planning to visit? (e.g. Vizag, Hyderabad, Goa, Tirupati, or any city worldwide, please specify)"
                 return ChatResponse(
+                    success=True,
                     session_id=session_id,
-                    response=final_state["response_text"] if final_state["response_text"] else "Which city are you planning to visit? (e.g. Vizag, Hyderabad, Rajahmundry, or Ravulapalem)"
+                    response=resp_msg,
+                    message=resp_msg
                 )
             
             # Build location context string
@@ -254,21 +271,39 @@ class TravelAgent:
                 loc_data = final_state["location_to_destination"]
                 location_context = f"\n📍 **Travel Distance:** {loc_data.get('distance', 'N/A')} | **Estimated Time:** {loc_data.get('duration', 'N/A')}"
                 
+            full_response_text = final_state["response_text"] + location_context
+            weather_str = f"{final_state['weather'].get('status', 'Sunny')} ({final_state['weather'].get('temperature', '28°C')})"
+            
+            history_turns = memory_agent.load_chat_history(session_id)
+            
             return ChatResponse(
+                success=True,
                 session_id=session_id,
-                response=final_state["response_text"] + location_context,
+                response=full_response_text,
+                message=full_response_text,
                 itinerary=final_state["itinerary"],
                 estimated_cost=final_state["estimated_cost"],
                 travel_time="45 mins",
-                weather_summary=f"{final_state['weather']['status']} ({final_state['weather']['temperature']})",
+                weather_summary=weather_str,
+                weather=final_state["weather"],
+                budget={
+                    "estimated_cost": final_state["estimated_cost"],
+                    "limit": final_state["preferences"].get("budget", 5000.0)
+                },
                 booking_alerts=final_state["warnings"],
-                route_map=final_state.get("route_map", [])
+                recommendations=final_state.get("recommendations", []),
+                route_map=final_state.get("route_map", []),
+                route={"waypoints": final_state.get("route_map", [])},
+                history=history_turns
             )
         except Exception as e:
             logger.error(f"Travel Agent workflow failed: {str(e)}", exc_info=True)
+            err_msg = f"Sorry, I encountered an error processing your request. Error: {str(e)}"
             return ChatResponse(
+                success=False,
                 session_id=session_id,
-                response=f"Sorry, I encountered an error processing your request. Please try again. Error: {str(e)}",
+                response=err_msg,
+                message=err_msg,
                 booking_alerts=[f"Workflow Error: {str(e)}"]
             )
 

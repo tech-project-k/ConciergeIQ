@@ -78,14 +78,10 @@ DESTINATION_COORDS = {
     "gulbarga": (17.3297, 76.8343),
     "bellary": (15.1394, 76.9214),
     "bijapur": (16.8300, 75.7100),
-    "bimavaram": (16.9000, 82.2500),
+    "bhimavaram": (16.5333, 81.5333),
     "palakollu": (16.5167, 81.7333),
     "narasapur": (16.4333, 81.7000),
-    "bhimavaram": (16.5333, 81.5333),
-    "eluru": (16.7000, 81.1000),
-    "tenali": (16.2390, 80.6400),
-    "proddatur": (14.7500, 78.5500),
-    "himacala": (30.0000, 78.0000),
+    "himachal pradesh": (31.1048, 77.1734),
     "kolkata": (22.5726, 88.3639),
     "delhi": (28.6139, 77.2090),
     "mumbai": (19.0760, 72.8777),
@@ -97,13 +93,22 @@ DESTINATION_COORDS = {
     "agra": (27.1767, 78.0081),
     "amritsar": (31.6340, 74.8723),
     "chandigarh": (30.7333, 76.7794),
-    
+    "goa": (15.2993, 74.1240),
+    "paris": (48.8566, 2.3522),
+    "london": (51.5074, -0.1278),
+    "tokyo": (35.6762, 139.6503),
+    "dubai": (25.2048, 55.2708),
+    "singapore": (1.3521, 103.8198)
 }
 
 class LocationService:
     def get_destination_coordinates(self, destination: str) -> Optional[Tuple[float, float]]:
-        normalized = destination.lower()
-        return DESTINATION_COORDS.get(normalized)
+        normalized = destination.lower().strip()
+        coords = DESTINATION_COORDS.get(normalized)
+        if coords:
+            return coords
+        # Dynamic Geocoding via Google Maps / Nominatim API
+        return maps_service.geocode(destination)
 
     def calculate_distance_to_destination(
         self, 
@@ -118,7 +123,7 @@ class LocationService:
         if cached:
             return cached
 
-        dest_coords = DESTINATION_COORDS.get(destination.lower())
+        dest_coords = self.get_destination_coordinates(destination)
         if not dest_coords:
             return {
                 "error": f"Unknown destination: {destination}",

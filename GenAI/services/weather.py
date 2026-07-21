@@ -45,17 +45,12 @@ class WeatherService:
             except Exception as e:
                 logger.error(f"OpenWeather fail: {e}")
 
-        # OpenMeteo fallback
-        coords = {
-            "vizag": (17.6868, 83.2185),
-            "visakhapatnam": (17.6868, 83.2185),
-            "hyderabad": (17.3850, 78.4867),
-            "rajahmundry": (17.0005, 81.7835),
-            "ravulapalem": (16.7410, 81.8497)
-        }
-        if city.lower() in coords:
-            lat, lon = coords[city.lower()]
-            try:
+        # OpenMeteo fallback via dynamic coordinates
+        try:
+            from services.location import location_service
+            coords_tuple = location_service.get_destination_coordinates(city)
+            if coords_tuple:
+                lat, lon = coords_tuple
                 url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current_weather=true"
                 res = requests.get(url, timeout=5)
                 if res.status_code == 200:
@@ -72,8 +67,8 @@ class WeatherService:
                     }
                     cache_service.set(cache_key, result)
                     return result
-            except Exception as e:
-                logger.error(f"OpenMeteo fail: {e}")
+        except Exception as e:
+            logger.error(f"OpenMeteo fail: {e}")
 
         # Mock simulation
         import random

@@ -89,17 +89,25 @@ class VectorStore:
             {"city": "Ravulapalem", "type": "lunch", "name": "Sri Rama Vilas Traditional Meals", "address": "National Highway 16, Ravulapalem", "cost": 150.0, "lat": 16.7400, "lon": 81.8480, "category": "Food/Local"},
             {"city": "Ravulapalem", "type": "dinner", "name": "Sri Sai Swagath Premium AC Restaurant", "address": "NH-16 Bypass, Ravulapalem", "cost": 400.0, "lat": 16.7430, "lon": 81.8520, "category": "Food/Standard"},
             {"city": "Ravulapalem", "type": "hotel", "name": "Ravulapalem Backpacker Cozy Lodge", "address": "1 Luxury Road, Ravulapalem", "cost": 1200.0, "lat": 16.7410, "lon": 81.8497, "category": "Accommodation/Hotel"}
+
         ]
         for entry in raw_catalog:
             desc = f"{entry['name']} located in {entry['city']} is a {entry['type']} ({entry['category']}) with price {entry['cost']} and address: {entry['address']}."
             entry["description"] = desc
             self.documents.append(entry)
 
-    def search_catalog(self, query: str, city: str, limit: int = 5) -> List[Dict[str, Any]]:
-        city_lower = city.lower()
+    def search_catalog(self, query: str, city: str, limit: int = 8) -> List[Dict[str, Any]]:
+        city_lower = city.lower().strip()
         indices = [i for i, doc in enumerate(self.documents) if city_lower in doc["city"].lower()]
+        
+        # If target city is not pre-seeded, dynamically generate catalog entries for this city
+        if not indices and city_lower != "unknown":
+            self._generate_dynamic_city_catalog(city)
+            indices = [i for i, doc in enumerate(self.documents) if city_lower in doc["city"].lower()]
+            
         if not indices:
             indices = list(range(len(self.documents)))
+
         filtered_vectors = [self.doc_vectors[i] for i in indices]
         filtered_docs = [self.documents[i] for i in indices]
         
@@ -114,5 +122,32 @@ class VectorStore:
         for idx in sorted_indices[:limit]:
             results.append(filtered_docs[idx])
         return results
+
+    def _generate_dynamic_city_catalog(self, city: str):
+        from services.location import location_service
+        coords = location_service.get_destination_coordinates(city)
+        lat = coords[0] if coords else 17.6868
+        lon = coords[1] if coords else 83.2185
+        
+        city_title = city.capitalize()
+        dynamic_spots = [
+            {"city": city_title, "type": "attraction", "name": f"{city_title} Heritage & Landmark Tour", "address": f"Center Area, {city_title}", "cost": 100.0, "lat": lat + 0.005, "lon": lon + 0.005, "category": "Culture/Historical"},
+            {"city": city_title, "type": "attraction", "name": f"{city_title} Scenic View Point & Park", "address": f"Hill View, {city_title}", "cost": 50.0, "lat": lat - 0.004, "lon": lon + 0.003, "category": "Nature/Scenic"},
+            {"city": city_title, "type": "attraction", "name": f"{city_title} Regional Temple / Cathedral", "address": f"Main Road, {city_title}", "cost": 0.0, "lat": lat + 0.002, "lon": lon - 0.004, "category": "Culture/Religious"},
+            {"city": city_title, "type": "lunch", "name": f"{city_title} Traditional Flavors Restaurant", "address": f"Market Square, {city_title}", "cost": 350.0, "lat": lat - 0.002, "lon": lon - 0.002, "category": "Food/Local"},
+            {"city": city_title, "type": "dinner", "name": f"{city_title} Premium Rooftop Dining", "address": f"High Street, {city_title}", "cost": 1200.0, "lat": lat + 0.003, "lon": lon + 0.001, "category": "Food/Luxury"},
+            {"city": city_title, "type": "hotel", "name": f"{city_title} Grand Comfort Stay Hotel", "address": f"Station Road, {city_title}", "cost": 2500.0, "lat": lat, "lon": lon, "category": "Accommodation/Hotel"},
+            {"city": "city_title", "type": "event", "name": f"{city_title} Cultural Show & Shopping Market", "address": f"Mall Road, {city_title}", "cost": 200.0, "lat": lat - 0.005, "lon": lon + 0.006, "category": "Entertainment/Shopping"}
+        ]
+        
+        for entry in dynamic_spots:
+            desc = f"{entry['name']} located in {entry['city']} is a {entry['type']} ({entry['category']}) with price {entry['cost']} and address: {entry['address']}."
+            entry["description"] = desc
+            self.documents.append(entry)
+            
+        # Re-index TF-IDF
+        texts = [doc["description"] for doc in self.documents]
+        self.tfidf = SimpleTFIDF(texts)
+        self.doc_vectors = [self.tfidf.get_tfidf_vector(tokenize(text)) for text in texts]
 
 vector_store = VectorStore()

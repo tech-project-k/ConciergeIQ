@@ -21,9 +21,9 @@ class PlannerAgent:
         if self.api_key and "YOUR_GEMINI" not in self.api_key:
             try:
                 self.llm = ChatGoogleGenerativeAI(
-                    model="gemini-1.5-flash",
+                    model="gemini-2.5-flash",
                     google_api_key=self.api_key,
-                    timeout=5.0
+                    timeout=30.0
                 )
             except Exception as e:
                 logger.error(f"Gemini err: {e}")
@@ -51,7 +51,7 @@ class PlannerAgent:
                 response = invoke_with_timeout(
                     self.llm,
                     prompt,
-                    timeout=2.0,
+                    timeout=8.0,
                     fallback=lambda p: None,
                 )
                 if response is None:
