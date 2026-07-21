@@ -5,13 +5,18 @@
 
 import sqlite3
 import json
+import os
 from typing import List, Dict, Any
 from utils.logger import get_logger
 
 logger = get_logger("memory_manager")
 
+DEFAULT_DB_PATH = os.path.abspath(
+    os.path.join(os.path.dirname(os.path.dirname(__file__)), "conciergeiq_genai_memory.db")
+)
+
 class MemoryManager:
-    def __init__(self, db_path: str = "conciergeiq_genai_memory.db"):
+    def __init__(self, db_path: str = DEFAULT_DB_PATH):
         self.db_path = db_path
         self._init_db()
 

@@ -10,7 +10,7 @@ class LLMTimeoutError(RuntimeError):
 def invoke_with_timeout(
     llm: Any,
     prompt: str,
-    timeout: float = 5.0,
+    timeout: float = 8.0,
     fallback: Optional[Callable[[str], Any]] = None,
 ) -> Any:
     """Run an LLM invoke call with a hard timeout and fallback."""
@@ -26,8 +26,8 @@ def invoke_with_timeout(
         future = executor.submit(_run)
         try:
             return future.result(timeout=timeout)
-        except concurrent.futures.TimeoutError as exc:
+        except (concurrent.futures.TimeoutError, Exception) as exc:
             future.cancel()
             if fallback is not None:
                 return fallback(prompt)
-            raise LLMTimeoutError("LLM call timed out") from exc
+            raise LLMTimeoutError(f"LLM call failed or timed out: {exc}") from exc

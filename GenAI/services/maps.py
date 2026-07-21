@@ -14,7 +14,7 @@
 
 import math
 import googlemaps
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional, Tuple
 from config.settings import settings
 from services.cache import cache_service
 from utils.logger import get_logger
@@ -81,5 +81,40 @@ class MapsService:
         }
         cache_service.set(cache_key, result)
         return result
+
+    def geocode(self, location_name: str) -> Optional[tuple[float, float]]:
+        """Resolve any city or place name to (latitude, longitude) coordinates."""
+        cache_key = f"geocode_{location_name.lower().strip()}"
+        cached = cache_service.get(cache_key)
+        if cached:
+            return cached
+
+        if self.gmaps:
+            try:
+                res = self.gmaps.geocode(location_name)
+                if res and len(res) > 0:
+                    loc = res[0]['geometry']['location']
+                    coords = (float(loc['lat']), float(loc['lng']))
+                    cache_service.set(cache_key, coords)
+                    return coords
+            except Exception as e:
+                logger.error(f"Google Geocode API fail for '{location_name}': {e}")
+
+        # Fallback to OpenStreetMap Nominatim API
+        try:
+            import requests
+            headers = {'User-Agent': 'ConciergeIQ-GenAI/1.0'}
+            url = f"https://nominatim.openstreetmap.org/search?q={requests.utils.quote(location_name)}&format=json&limit=1"
+            resp = requests.get(url, headers=headers, timeout=4)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data and len(data) > 0:
+                    coords = (float(data[0]['lat']), float(data[0]['lon']))
+                    cache_service.set(cache_key, coords)
+                    return coords
+        except Exception as e:
+            logger.warning(f"Nominatim fallback failed for '{location_name}': {e}")
+
+        return None
 
 maps_service = MapsService()

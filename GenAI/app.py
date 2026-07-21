@@ -19,15 +19,19 @@ import os
 # Set current path in sys.path to enable local imports to resolve from GenAI folder root
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-# Monkeypatch ForwardRef._evaluate for Python 3.12 compatibility with Pydantic v1
+# Monkeypatch ForwardRef._evaluate for Python 3.12 compatibility if using Pydantic v1
 if sys.version_info >= (3, 12):
-    from typing import ForwardRef
-    original_evaluate = ForwardRef._evaluate
-    def patched_evaluate(self, globalns, localns, *args, **kwargs):
-        if len(args) == 1 and isinstance(args[0], (set, frozenset)) and "recursive_guard" not in kwargs:
-            return original_evaluate(self, globalns, localns, None, recursive_guard=args[0])
-        return original_evaluate(self, globalns, localns, *args, **kwargs)
-    ForwardRef._evaluate = patched_evaluate
+    try:
+        from typing import ForwardRef
+        if hasattr(ForwardRef, '_evaluate'):
+            original_evaluate = ForwardRef._evaluate
+            def patched_evaluate(self, globalns, localns, *args, **kwargs):
+                if len(args) == 1 and isinstance(args[0], (set, frozenset)) and "recursive_guard" not in kwargs:
+                    return original_evaluate(self, globalns, localns, None, recursive_guard=args[0])
+                return original_evaluate(self, globalns, localns, *args, **kwargs)
+            ForwardRef._evaluate = patched_evaluate
+    except Exception:
+        pass
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -47,7 +51,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
